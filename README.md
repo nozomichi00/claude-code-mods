@@ -2,7 +2,7 @@
 
 個人專用的 Claude Code mods，本身就是一個本機 plugin 市集。
 
-## 安裝（含重灌電腦後）
+## 安裝
 
 1. 先裝好 Claude Code、Git。
 2. 把 repo clone 到使用者資料夾，執行安裝腳本：
