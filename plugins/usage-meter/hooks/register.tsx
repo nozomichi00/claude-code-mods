@@ -67,10 +67,12 @@ export const register: Register = (on, options) => {
     return result
   })
 
+  // 同一個 band 可能還有其他 mod（例如 next-steps）：先取下層畫的內容，再接上用量列
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
-    if (e.props.hasSurvey) return next(e)
+    const below = await next(e)
+    if (e.props.hasSurvey) return below
     const snap = await read($, snapshot)
-    if (snap === null) return next(e)
+    if (snap === null) return below
     const [t, used] = await Promise.all([read($, now), read($, tokens)])
     const { Box, Text } = $.ui.resolve(e)
     const columns = e.props.bodyColumns - FRAME_COLUMNS
@@ -116,33 +118,36 @@ export const register: Register = (on, options) => {
       : formatMinutes(cache.remainingMinutes)
 
     return (
-      <Box borderStyle="round" borderColor={BORDER} paddingX={1} width={e.props.bodyColumns}>
-        <Box flexDirection="row" justifyContent="space-between" width={columns}>
-          <Box flexDirection="row" gap={1}>
-            {snap.model === null ? null : <Text key="model" bold color={MODEL}>{shortModel(snap.model)}</Text>}
-            {snap.model === null ? null : divider('d0')}
-            {gauge('context', 'Context', snap.contextPercent, '')}
-            {divider('d1')}
-            {gauge('five-hour', '5H', five?.percent ?? null, fiveReset,
-              five !== null && isOverPace(five, FIVE_HOUR_MS, t))}
-            {divider('d2')}
-            {gauge('seven-day', '7D', week?.percent ?? null, weekReset,
-              week !== null && isOverPace(week, SEVEN_DAY_MS, t))}
-            {divider('d3')}
-            <Box key="tokens" flexDirection="row" gap={1}>
-              <Text dimColor>Token</Text>
-              <Text dimColor>↑</Text>
-              <Text bold color={ACCENT}>{formatTokens(used.input)}</Text>
-              <Text dimColor>↓</Text>
-              <Text bold color={ACCENT}>{formatTokens(used.output)}</Text>
+      <Box flexDirection="column">
+        {below}
+        <Box key="frame" borderStyle="round" borderColor={BORDER} paddingX={1} width={e.props.bodyColumns}>
+          <Box flexDirection="row" justifyContent="space-between" width={columns}>
+            <Box flexDirection="row" gap={1}>
+              {snap.model === null ? null : <Text key="model" bold color={MODEL}>{shortModel(snap.model)}</Text>}
+              {snap.model === null ? null : divider('d0')}
+              {gauge('context', 'Context', snap.contextPercent, '')}
+              {divider('d1')}
+              {gauge('five-hour', '5H', five?.percent ?? null, fiveReset,
+                five !== null && isOverPace(five, FIVE_HOUR_MS, t))}
+              {divider('d2')}
+              {gauge('seven-day', '7D', week?.percent ?? null, weekReset,
+                week !== null && isOverPace(week, SEVEN_DAY_MS, t))}
+              {divider('d3')}
+              <Box key="tokens" flexDirection="row" gap={1}>
+                <Text dimColor>Token</Text>
+                <Text dimColor>↑</Text>
+                <Text bold color={ACCENT}>{formatTokens(used.input)}</Text>
+                <Text dimColor>↓</Text>
+                <Text bold color={ACCENT}>{formatTokens(used.output)}</Text>
+              </Box>
             </Box>
-          </Box>
-          <Box key="cache" flexDirection="row" gap={1}>
-            <Text color={ACCENT}>Cache</Text>
-            {bar('cache-bar', cacheRemaining, layout.bar === 0 ? 0 : CACHE_BAR, cacheLevel)}
-            {cache === 'unknown'
-              ? <Text dimColor>{cacheText}</Text>
-              : <Text bold color={COLOR[cacheLevel]}>{cacheText}</Text>}
+            <Box key="cache" flexDirection="row" gap={1}>
+              <Text color={ACCENT}>Cache</Text>
+              {bar('cache-bar', cacheRemaining, layout.bar === 0 ? 0 : CACHE_BAR, cacheLevel)}
+              {cache === 'unknown'
+                ? <Text dimColor>{cacheText}</Text>
+                : <Text bold color={COLOR[cacheLevel]}>{cacheText}</Text>}
+            </Box>
           </Box>
         </Box>
       </Box>

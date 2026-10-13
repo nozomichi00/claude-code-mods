@@ -31,6 +31,11 @@ test('draws the framed meter above the prompt at every width', async ($, on) => 
   on('session.model', () => ({ value: 'claude-opus-5-5' }))
   on('session.start', ($, e) => ({ cwd: e.cwd }))
   on('turn.complete', () => ({ text: '' }))
+  // 下層另一個 mod（例如 next-steps）畫的內容要保留
+  on('ui.render', { component: 'AbovePrompt' }, ($, e) => {
+    const { Text } = $.ui.resolve(e)
+    return <Text key="beneath">next:</Text>
+  })
   await $.session.start({ cwd: 'C:/', surface: 'terminal', isInteractive: true })
   await $.turn.complete({
     turnId: 't1', isAborted: false, reason: 'answer', answer: 'ok', durationMs: 1, usage: turnUsage,
@@ -43,6 +48,7 @@ test('draws the framed meter above the prompt at every width', async ($, on) => 
     expect((await ui.find({ type: 'Text', text: '85%' }))?.props.color).toBe('#ED8796')
     expect(await ui.find({ type: 'Text', text: '62%' })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: '12%' })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: 'next:' })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: 'Token' })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: '5H' })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: '7D' })).toBeDefined()
@@ -50,7 +56,7 @@ test('draws the framed meter above the prompt at every width', async ($, on) => 
     expect(await ui.find({ type: 'Text', text: '1.2M' })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: '45k' })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: '1h00m' })).toBeDefined()
-    expect((await ui.find({ type: 'Box' }))?.props.borderStyle).toBe('round')
+    expect((await ui.find({ key: 'frame' }))?.props.borderStyle).toBe('round')
     await ui.unmount()
   }
 })
