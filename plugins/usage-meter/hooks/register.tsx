@@ -112,7 +112,7 @@ export const register: Register = (on, options) => {
     const cacheLevel: Level = cache === 'expired' ? 'hot' : cache === 'unknown' ? 'ok' : levelOf(cache.usedPercent)
     const cacheRemaining = cache === 'expired' || cache === 'unknown' ? 0 : 100 - cache.usedPercent
     const cacheText = cache === 'unknown' ? '—'
-      : cache === 'expired' ? '已過期'
+      : cache === 'expired' ? 'expired'
       : formatMinutes(cache.remainingMinutes)
 
     return (
@@ -123,13 +123,14 @@ export const register: Register = (on, options) => {
             {snap.model === null ? null : divider('d0')}
             {gauge('context', 'Context', snap.contextPercent, '')}
             {divider('d1')}
-            {gauge('five-hour', '5 小時', five?.percent ?? null, fiveReset,
+            {gauge('five-hour', '5H', five?.percent ?? null, fiveReset,
               five !== null && isOverPace(five, FIVE_HOUR_MS, t))}
             {divider('d2')}
-            {gauge('seven-day', '本週', week?.percent ?? null, weekReset,
+            {gauge('seven-day', '7D', week?.percent ?? null, weekReset,
               week !== null && isOverPace(week, SEVEN_DAY_MS, t))}
             {divider('d3')}
             <Box key="tokens" flexDirection="row" gap={1}>
+              <Text dimColor>Token</Text>
               <Text dimColor>↑</Text>
               <Text bold color={ACCENT}>{formatTokens(used.input)}</Text>
               <Text dimColor>↓</Text>
@@ -137,7 +138,7 @@ export const register: Register = (on, options) => {
             </Box>
           </Box>
           <Box key="cache" flexDirection="row" gap={1}>
-            <Text color={ACCENT}>快取</Text>
+            <Text color={ACCENT}>Cache</Text>
             {bar('cache-bar', cacheRemaining, layout.bar === 0 ? 0 : CACHE_BAR, cacheLevel)}
             {cache === 'unknown'
               ? <Text dimColor>{cacheText}</Text>

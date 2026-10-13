@@ -1,6 +1,6 @@
 {
   "name": "usage-meter",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "輸入框上方的圓角框用量列：模型、context、五小時額度與重置時間、本週額度、累計 token、快取倒數",
   "author": {
     "name": "Lucas"
