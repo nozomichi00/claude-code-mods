@@ -14,6 +14,11 @@
       "name": "next-steps",
       "source": "./plugins/next-steps",
       "description": "每輪結束後在輸入框上方建議最多三個下一步 prompt，按 1/2/3 填入、0 關閉。複製自 anthropics/claude-plugins-community（作者 Thariq Shihipar，MIT）"
+    },
+    {
+      "name": "handoff",
+      "source": "./plugins/handoff",
+      "description": "Context 用到 70% 時在輸入框上方出現交接按鈕：寫交接摘要存檔、清空對話、把摘要當新對話第一句送出"
     }
   ]
 }

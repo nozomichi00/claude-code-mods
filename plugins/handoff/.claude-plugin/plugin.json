@@ -1,0 +1,16 @@
+{
+  "name": "handoff",
+  "version": "0.1.0",
+  "description": "Context 用到門檻時在輸入框上方出現交接按鈕：寫交接摘要存檔、清空對話、把摘要當新對話第一句送出",
+  "author": { "name": "Lucas" },
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "thresholdPercent": {
+      "type": "number",
+      "title": "出現交接按鈕的 Context 門檻（%）",
+      "description": "Context 用量達到這個百分比時，在輸入框上方顯示交接按鈕",
+      "required": false,
+      "default": 70
+    }
+  }
+}
