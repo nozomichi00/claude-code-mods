@@ -1,0 +1,14 @@
+{
+  "name": "claude-code-mods",
+  "owner": {
+    "name": "Lucas"
+  },
+  "description": "個人專用的 Claude Code mods",
+  "plugins": [
+    {
+      "name": "usage-meter",
+      "source": "./plugins/usage-meter",
+      "description": "輸入框上方的圓角框用量列：模型、context、五小時額度與重置時間、本週額度、累計 token、快取倒數"
+    }
+  ]
+}

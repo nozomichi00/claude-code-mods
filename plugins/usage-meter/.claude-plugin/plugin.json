@@ -1,0 +1,21 @@
+{
+  "name": "usage-meter",
+  "version": "0.4.0",
+  "description": "輸入框上方的圓角框用量列：模型、context、五小時額度與重置時間、本週額度、累計 token、快取倒數",
+  "author": {
+    "name": "Lucas"
+  },
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "cacheTtlMinutes": {
+      "type": "string",
+      "title": "快取 TTL（分鐘）",
+      "description": "Prompt cache 的存活時間，訂閱方案為 60，API 預設為 5",
+      "default": "60",
+      "options": [
+        "60",
+        "5"
+      ]
+    }
+  }
+}
