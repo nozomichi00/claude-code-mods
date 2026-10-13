@@ -28,7 +28,6 @@ const band = (bodyColumns: number) => ({
 test('draws the framed meter above the prompt at every width', async ($, on) => {
   const clock = mock.clock(on, { now: NOW })
   on('session.usage', () => ({ value: usage }))
-  on('session.model', () => ({ value: 'claude-opus-5-5' }))
   on('session.start', ($, e) => ({ cwd: e.cwd }))
   on('turn.complete', () => ({ text: '' }))
   // 下層另一個 mod（例如 next-steps）畫的內容要保留
@@ -44,7 +43,8 @@ test('draws the framed meter above the prompt at every width', async ($, on) => 
 
   for (const columns of [150, 120, 90]) {
     const ui = await $.ui.mount({ plugin: 'usage-meter', surface: 'terminal', ...band(columns) })
-    expect((await ui.find({ type: 'Text', text: 'opus-5-5' }))?.props.color).toBe('#C6A0F6')
+    expect(await ui.find({ type: 'Text', text: 'opus-5-5' })).toBeUndefined()
+    expect(await ui.find({ type: 'Text', text: '↻ 3d0h' })).toBeDefined()
     expect((await ui.find({ type: 'Text', text: '85%' }))?.props.color).toBe('#ED8796')
     expect(await ui.find({ type: 'Text', text: '62%' })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: '12%' })).toBeDefined()

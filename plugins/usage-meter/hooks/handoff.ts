@@ -7,10 +7,6 @@ const ESCAPE_SEQUENCES = /\x1b\[[0-?]*[ -/]*[@-~]|\x1b\][^\x07\x1b]*(?:\x07|\x1b
 const UNSEEN = /[\u0000-\u0008\u000b-\u001f\u007f\p{Cf}\p{Co}\u{E0000}-\u{E007F}]/gu
 const FENCE = /^```[\w-]*\n([\s\S]*?)\n```$/
 
-export function shouldOffer(contextPercent: number | null, threshold: number): boolean {
-  return contextPercent !== null && contextPercent >= threshold
-}
-
 export function buildPrompt(files: readonly string[]): string {
   const fileList = files.length === 0
     ? '（工具紀錄中沒有修改過的檔案；若對話裡有提到改過的檔案，依對話補上）'

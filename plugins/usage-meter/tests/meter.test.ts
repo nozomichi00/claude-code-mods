@@ -2,8 +2,8 @@ import { describe, expect, test } from 'claude-code/testing'
 import type { SessionUsage } from 'claude-code'
 
 import {
-  FIVE_HOUR_MS, addTokens, barCells, formatTokens, shortModel, cacheState, formatMinutes, formatPercent, formatResetTime, formatUntil,
-  formatWeeklyReset, isHot, isOverPace, levelOf, toSnapshot,
+  addTokens, barCells, formatTokens, cacheState, formatMinutes, formatPercent, formatResetTime, formatUntil,
+  isHot, levelOf, toSnapshot,
 } from '../hooks/meter'
 
 const MINUTE_MS = 60_000
@@ -19,7 +19,7 @@ const usage: SessionUsage = {
 
 describe('toSnapshot', () => {
   test('picks context, five_hour and seven_day figures', async () => {
-    const snap = toSnapshot(usage, 'claude-opus-5-5', 123)
+    const snap = toSnapshot(usage, 123)
     expect(snap.contextPercent).toBe(42)
     expect(snap.fiveHour).toEqual({ percent: 81.5, resetsAt: '2026-10-12T10:00:00Z' })
     expect(snap.sevenDay?.percent).toBe(12)
@@ -27,7 +27,7 @@ describe('toSnapshot', () => {
   })
 
   test('leaves missing windows and context as null', async () => {
-    const snap = toSnapshot({ startedAt: 0, context: { window: 200_000 }, rateLimits: [] }, null, null)
+    const snap = toSnapshot({ startedAt: 0, context: { window: 200_000 }, rateLimits: [] }, null)
     expect(snap.contextPercent).toBeNull()
     expect(snap.fiveHour).toBeNull()
     expect(snap.sevenDay).toBeNull()
@@ -101,22 +101,6 @@ describe('barCells', () => {
   })
 })
 
-describe('isOverPace', () => {
-  const NOW = 1_000_000_000_000
-  const resetIn = (minutes: number) => new Date(NOW + minutes * MINUTE_MS).toISOString()
-
-  test('flags a rate that would pass 100% before the reset', async () => {
-    // 半個窗口用掉 60%，推估 120%
-    expect(isOverPace({ percent: 60, resetsAt: resetIn(150) }, FIVE_HOUR_MS, NOW)).toBe(true)
-  })
-
-  test('stays quiet on an on-track rate, low usage, or no reset time', async () => {
-    expect(isOverPace({ percent: 40, resetsAt: resetIn(150) }, FIVE_HOUR_MS, NOW)).toBe(false)
-    expect(isOverPace({ percent: 8, resetsAt: resetIn(295) }, FIVE_HOUR_MS, NOW)).toBe(false)
-    expect(isOverPace({ percent: 60 }, FIVE_HOUR_MS, NOW)).toBe(false)
-  })
-})
-
 describe('time formats', () => {
   test('formatMinutes reads as <1m, 45m, 2h05m', async () => {
     expect(formatMinutes(0)).toBe('<1m')
@@ -128,12 +112,13 @@ describe('time formats', () => {
     expect(formatUntil(new Date(80 * MINUTE_MS).toISOString(), 0)).toBe('1h20m')
   })
 
-  test('formatWeeklyReset names the weekday', async () => {
-    expect(formatWeeklyReset(new Date(2026, 9, 15, 2, 0).toISOString())).toBe('週四 02:00')
+  test('formatUntil reads days as 3d4h for the weekly reset', async () => {
+    expect(formatUntil(new Date((3 * 24 * 60 + 4 * 60 + 30) * MINUTE_MS).toISOString(), 0)).toBe('3d4h')
+    expect(formatMinutes(24 * 60)).toBe('1d0h')
   })
 })
 
-describe('tokens and model', () => {
+describe('tokens', () => {
   test('addTokens counts cache reads and writes as input', async () => {
     const total = addTokens({ input: 100, output: 10 }, {
       model: 'm', input_tokens: 1, cache_creation_input_tokens: 2, cache_read_input_tokens: 3, output_tokens: 4,
@@ -149,8 +134,4 @@ describe('tokens and model', () => {
     expect(formatTokens(2_000_000)).toBe('2M')
   })
 
-  test('shortModel drops the claude- prefix only', async () => {
-    expect(shortModel('claude-opus-5-5')).toBe('opus-5-5')
-    expect(shortModel('Opus 5.5')).toBe('Opus 5.5')
-  })
 })

@@ -4,13 +4,9 @@ import type { UsageMeterSnapshot, UsageMeterTokens, UsageMeterWindow } from '../
 
 export const WARN_PERCENT = 50
 export const HOT_PERCENT = 80
-export const FIVE_HOUR_MS = 5 * 60 * 60_000
-export const SEVEN_DAY_MS = 7 * 24 * 60 * 60_000
 const MINUTE_MS = 60_000
-// 用量低於此值時線性推估只是雜訊（開窗 5 分鐘用 3% 會推出 180%）
-const PACE_MIN_PERCENT = 10
+const MINUTES_PER_DAY = 24 * 60
 const PARTIAL_BLOCKS = ['', '▏', '▎', '▍', '▌', '▋', '▊', '▉']
-const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六']
 
 export type Level = 'ok' | 'warn' | 'hot'
 
@@ -20,9 +16,8 @@ function toWindow(limits: SessionRateLimit[], kind: string): UsageMeterWindow | 
   return { percent: limit.percentUsed, resetsAt: limit.resetsAt }
 }
 
-export function toSnapshot(usage: SessionUsage, model: string | null, lastResponseAt: number | null): UsageMeterSnapshot {
+export function toSnapshot(usage: SessionUsage, lastResponseAt: number | null): UsageMeterSnapshot {
   return {
-    model,
     contextPercent: usage.context.percent ?? null,
     fiveHour: toWindow(usage.rateLimits, 'five_hour'),
     sevenDay: toWindow(usage.rateLimits, 'seven_day'),
@@ -47,11 +42,6 @@ export function formatTokens(count: number): string {
 
 function trimZero(text: string): string {
   return text.endsWith('.0') ? text.slice(0, -2) : text
-}
-
-/** claude-opus-5-5 → opus-5-5；其他寫法原樣顯示。 */
-export function shortModel(model: string): string {
-  return model.replace(/^claude-/, '')
 }
 
 export function isHot(percent: number): boolean {
@@ -79,15 +69,6 @@ export function barCells(percent: number, width: number): { fill: string; rest: 
   return { fill, rest: ' '.repeat(Math.max(0, width - used)) }
 }
 
-/** 照目前速度線性推估到重置時，是否會用超過額度。 */
-export function isOverPace(window: UsageMeterWindow, windowMs: number, now: number): boolean {
-  if (window.resetsAt === undefined || window.percent < PACE_MIN_PERCENT) return false
-  const remainingMs = new Date(window.resetsAt).getTime() - now
-  if (!Number.isFinite(remainingMs) || remainingMs <= 0 || remainingMs >= windowMs) return false
-  const elapsedFraction = (windowMs - remainingMs) / windowMs
-  return window.percent / elapsedFraction > 100
-}
-
 function hhmm(at: Date): string {
   return `${String(at.getHours()).padStart(2, '0')}:${String(at.getMinutes()).padStart(2, '0')}`
 }
@@ -103,14 +84,7 @@ export function formatResetTime(iso: string, now: number): string {
   return isSameDay ? hhmm(at) : `${at.getMonth() + 1}/${at.getDate()} ${hhmm(at)}`
 }
 
-/** 本週額度的重置：週四 02:00。 */
-export function formatWeeklyReset(iso: string): string {
-  const at = new Date(iso)
-  if (Number.isNaN(at.getTime())) return '?'
-  return `週${WEEKDAYS[at.getDay()]} ${hhmm(at)}`
-}
-
-/** 距離 iso 還有多久：2h05m、45m、<1m。 */
+/** 距離 iso 還有多久：3d4h、2h05m、45m、<1m。 */
 export function formatUntil(iso: string, now: number): string {
   const ms = new Date(iso).getTime() - now
   if (!Number.isFinite(ms)) return '?'
@@ -120,6 +94,7 @@ export function formatUntil(iso: string, now: number): string {
 export function formatMinutes(minutes: number): string {
   if (minutes < 1) return '<1m'
   if (minutes < 60) return `${minutes}m`
+  if (minutes >= MINUTES_PER_DAY) return `${Math.floor(minutes / MINUTES_PER_DAY)}d${Math.floor((minutes % MINUTES_PER_DAY) / 60)}h`
   return `${Math.floor(minutes / 60)}h${String(minutes % 60).padStart(2, '0')}m`
 }
 

@@ -1,7 +1,7 @@
 {
   "name": "usage-meter",
-  "version": "0.4.2",
-  "description": "輸入框上方的圓角框用量列：模型、context、五小時額度與重置時間、本週額度、累計 token、快取倒數",
+  "version": "0.5.3",
+  "description": "輸入框上方的圓角框用量列：context、五小時額度與重置時間、本週額度、累計 token、快取倒數，Context 右邊常駐交接按鈕",
   "author": {
     "name": "Lucas"
   },

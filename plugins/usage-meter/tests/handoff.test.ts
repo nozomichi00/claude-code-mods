@@ -2,16 +2,8 @@ import { describe, expect, test } from 'claude-code/testing'
 
 import {
   SECTIONS, addFile, buildPrompt, cleanSummary, fileContent, firstMessage, handoffPath, projectName,
-  shouldOffer, timestamp,
+  timestamp,
 } from '../hooks/handoff'
-
-describe('shouldOffer', () => {
-  test('offers at or above the threshold only', async () => {
-    expect(shouldOffer(null, 70)).toBe(false)
-    expect(shouldOffer(69, 70)).toBe(false)
-    expect(shouldOffer(70, 70)).toBe(true)
-  })
-})
 
 describe('buildPrompt', () => {
   test('asks for the five fixed sections and lists the tracked files', async () => {
