@@ -9,7 +9,8 @@ import {
 import type { Level } from './meter'
 import { addFile, buildPrompt, cleanSummary, fileContent, firstMessage, handoffPath } from './handoff'
 
-const TICK_MS = 15_000
+// 每秒推進時鐘，倒數（重置時間、快取）隨時鐘即時跳動
+const TICK_MS = 1_000
 const DEFAULT_TTL_MINUTES = 60
 // 圓角框：左右框線各 1 欄、左右內距各 1 欄
 const FRAME_COLUMNS = 4
@@ -50,6 +51,13 @@ async function homeDir($: EngineInterface): Promise<string> {
 async function resetConversation($: EngineInterface): Promise<void> {
   await update($, editedFiles, () => [])
   await update($, snapshot, prev => (prev === null ? null : { ...prev, contextPercent: null, lastResponseAt: null }))
+}
+
+/** 重讀用量；hasResponded 表示剛收到一次回應，快取倒數從此刻重算。 */
+async function refreshSnapshot($: EngineInterface, hasResponded: boolean): Promise<void> {
+  const [usage, t] = await Promise.all([$.session.usage(), $.clock.now()])
+  await update($, snapshot, prev => toSnapshot(usage, hasResponded ? t : (prev?.lastResponseAt ?? null)))
+  await update($, now, () => t)
 }
 
 async function trackFile($: EngineInterface, path: string, agentId: string | undefined): Promise<void> {
@@ -130,15 +138,25 @@ export const register: Register = (on, options) => {
     return result
   })
 
+  // 每次模型回應（回合中的每一步）就更新：Context、額度、Token、快取倒數不必等整個回合結束
+  on('turn.step', async function* ($, e, next) {
+    const result = yield* next(e)
+    const stepUsage = result.usage
+    if (stepUsage !== null) await update($, tokens, total => addTokens(total, stepUsage))
+    if (e.agentId === undefined) await refreshSnapshot($, stepUsage !== null)
+    return result
+  })
+
+  // 額度跨過整數百分點時引擎會主動推送，不必等下一次回應
+  on('session.measure', async ($, e, next) => {
+    const result = await next(e)
+    await update($, snapshot, prev => toSnapshot({ startedAt: 0, context: e.context, rateLimits: e.rateLimits }, prev?.lastResponseAt ?? null))
+    return result
+  })
+
   on('turn.complete', async ($, e, next) => {
     const result = await next(e)
-    const turnUsage = e.usage
-    if (turnUsage !== undefined) await update($, tokens, total => addTokens(total, turnUsage))
-    if (e.agentId !== undefined) return result
-
-    const [usage, t] = await Promise.all([$.session.usage(), $.clock.now()])
-    await update($, snapshot, prev => toSnapshot(usage, turnUsage ? t : (prev?.lastResponseAt ?? null)))
-    await update($, now, () => t)
+    if (e.agentId === undefined) await refreshSnapshot($, false)
     return result
   })
 

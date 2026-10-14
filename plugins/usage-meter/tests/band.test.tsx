@@ -1,5 +1,5 @@
 import { expect, mock, test } from 'claude-code/testing'
-import type { SessionUsage, TurnUsage } from 'claude-code'
+import type { SessionUsage, TurnStepResult, TurnUsage } from 'claude-code'
 
 const NOW = new Date(2026, 9, 12, 16, 0).getTime()
 
@@ -30,12 +30,17 @@ test('draws the framed meter above the prompt at every width', async ($, on) => 
   on('session.usage', () => ({ value: usage }))
   on('session.start', ($, e) => ({ cwd: e.cwd }))
   on('turn.complete', () => ({ text: '' }))
+  on('turn.step', async function* ($, e): AsyncGenerator<never, TurnStepResult> {
+    return { turnId: e.turnId, index: e.index, answer: 'ok', toolUses: [], stopReason: 'end_turn', usage: turnUsage }
+  })
   // 下層另一個 mod（例如 next-steps）畫的內容要保留
   on('ui.render', { component: 'AbovePrompt' }, ($, e) => {
     const { Text } = $.ui.resolve(e)
     return <Text key="beneath">next:</Text>
   })
   await $.session.start({ cwd: 'C:/', surface: 'terminal', isInteractive: true })
+  const step = $.turn.step({ turnId: 't1', index: 0, model: 'm', messageCount: 1 })
+  for await (const _ of step) { /* 把串流讀完 */ }
   await $.turn.complete({
     turnId: 't1', isAborted: false, reason: 'answer', answer: 'ok', durationMs: 1, usage: turnUsage,
   })
