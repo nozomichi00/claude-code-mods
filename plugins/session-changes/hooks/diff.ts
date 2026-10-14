@@ -17,7 +17,7 @@ export function cleanLine(line: string): string {
   return line.replace(CONTROL_CHARS, '')
 }
 
-/** 要畫成一行的外來文字（TO DO、路徑）：換行改空白，再去掉控制字元。 */
+/** 要畫成一行的外來文字（路徑）：換行改空白，再去掉控制字元。 */
 export function oneLine(text: string): string {
   return cleanLine(text.replace(/\r?\n/g, ' '))
 }

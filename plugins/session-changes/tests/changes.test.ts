@@ -1,8 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import {
-  addTask, byRecent, clipDiff, displayPath, editsInBudget, fileKey, fitStart, fromTodoWrite,
-  progress, recordEdit, totals, updateTask, visibleTodos,
+  byRecent, clipDiff, displayPath, editsInBudget, fileKey, fitStart, recordEdit, totals,
 } from '../hooks/changes'
 import type { EditRecord } from '../hooks/changes'
 
@@ -82,42 +81,5 @@ describe('diff budget', () => {
   test('notes an empty new file instead of an unchanged one', async () => {
     const files = recordEdit([], edit({ tool: 'Write', isCreated: true, before: '', patch: [], content: '' }))
     expect(files[0]?.edits[0]?.note).toBe('新建的空檔案')
-  })
-})
-
-describe('todos', () => {
-  test('replaces the whole list on TodoWrite', async () => {
-    const todos = fromTodoWrite([
-      { content: '寫測試', status: 'completed', activeForm: '正在寫測試' },
-      { content: '實作', status: 'in_progress', activeForm: '正在實作' },
-    ])
-    expect(progress(todos)).toEqual({ done: 1, total: 2 })
-  })
-
-  test('flattens newlines and strips control characters the pane would refuse', async () => {
-    const [todo] = fromTodoWrite([{ content: 'fix\r\nbug\u001b[31m', status: 'pending', activeForm: 'a\nb' }])
-    expect(todo?.content).toBe('fix bug[31m')
-    expect(todo?.activeForm).toBe('a b')
-    expect(addTask([], '1', 'x\ny', undefined)[0]?.content).toBe('x y')
-  })
-
-  test('builds the list from TaskCreate and TaskUpdate, dropping deleted tasks', async () => {
-    let todos = addTask([], '1', '讀設定', undefined)
-    todos = addTask(todos, '2', '寫程式', '正在寫程式')
-    todos = updateTask(todos, { taskId: '1', status: 'completed' })
-    todos = updateTask(todos, { taskId: '2', status: 'in_progress', subject: '寫 mod' })
-    expect(todos.map(todo => [todo.content, todo.status])).toEqual([['讀設定', 'completed'], ['寫 mod', 'in_progress']])
-    expect(todos[0]?.activeForm).toBe('讀設定')
-    expect(updateTask(todos, { taskId: '1', status: 'deleted' }).length).toBe(1)
-  })
-
-  test('folds completed items once the list is long', async () => {
-    const many = fromTodoWrite(Array.from({ length: 10 }, (_, i) => ({
-      content: `t${i}`, status: i < 6 ? 'completed' as const : 'pending' as const, activeForm: `t${i}`,
-    })))
-    const { shown, foldedDone } = visibleTodos(many)
-    expect(foldedDone).toBe(6)
-    expect(shown.length).toBe(4)
-    expect(visibleTodos(many.slice(0, 3)).foldedDone).toBe(0)
   })
 })

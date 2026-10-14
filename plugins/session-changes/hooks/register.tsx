@@ -3,13 +3,10 @@ import type { EngineInterface, Register } from 'claude-code'
 
 import { unifiedBetween } from './diff'
 import {
-  addTask, byRecent, clipDiff, clockTime, displayPath, editsInBudget, fileKey, fitStart, fromTodoWrite,
-  hasAgentEdit, progress, recordEdit, totals, updateTask, visibleTodos,
+  byRecent, clipDiff, clockTime, displayPath, editsInBudget, fileKey, fitStart, hasAgentEdit, recordEdit, totals,
 } from './changes'
 import type { EditRecord } from './changes'
-import type {
-  SessionChangesDiffMode, SessionChangesFile, SessionChangesTodo, SessionChangesTotal, SessionChangesView,
-} from '../types'
+import type { SessionChangesDiffMode, SessionChangesFile, SessionChangesTotal, SessionChangesView } from '../types'
 
 const PANE = 'session-changes'
 const TITLE = '變更'
@@ -19,11 +16,8 @@ const COMMAND = 'changes'
 const ACCENT = '#8AADF4'
 const GREEN = '#A6DA95'
 const RED = '#ED8796'
-const TRACK = '#494D64'
-const PROGRESS_CELLS = 10
 
 const files = atom({ plugin: 'session-changes', key: 'files' } as const, [])
-const todos = atom({ plugin: 'session-changes', key: 'todos' } as const, [])
 const view = atom({ plugin: 'session-changes', key: 'view' } as const, { kind: 'list' })
 const total = atom({ plugin: 'session-changes', key: 'total' } as const, null)
 const cwd = atom({ plugin: 'session-changes', key: 'cwd' } as const, '')
@@ -72,10 +66,6 @@ async function onEdit($: EngineInterface, record: EditRecord): Promise<void> {
   }
 }
 
-async function onTodos($: EngineInterface, change: (list: SessionChangesTodo[]) => SessionChangesTodo[]): Promise<void> {
-  await update($, todos, change)
-}
-
 async function showDiff($: EngineInterface, key: string, mode: SessionChangesDiffMode): Promise<void> {
   await update($, view, (): SessionChangesView => ({ kind: 'diff', key, mode }))
   if (mode === 'total') await computeTotal($, key)
@@ -83,14 +73,13 @@ async function showDiff($: EngineInterface, key: string, mode: SessionChangesDif
 
 async function reset($: EngineInterface): Promise<void> {
   await update($, files, () => [])
-  await update($, todos, () => [])
   await update($, view, () => ({ kind: 'list' }))
   await update($, total, () => null)
 }
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
-    await $.command.register({ name: COMMAND, description: '開關「變更」側邊面板：本 session 改過的檔案與 TO DO 進度' })
+    await $.command.register({ name: COMMAND, description: '開關「變更」側邊面板：本 session 改過的檔案與 diff' })
     await update($, cwd, () => e.cwd)
     return next(e)
   })
@@ -137,31 +126,6 @@ export const register: Register = on => {
     return ran
   }).catch(($, e, next) => next(e))
 
-  // ── TO DO：舊版 TodoWrite 送整份清單，新版 Task 工具一次改一項 ──
-
-  on('tool.call', { tool: 'TodoWrite' }, async ($, e, next) => {
-    const ran = await next(e)
-    if (ran.deny === undefined && ran.isError !== true) await onTodos($, () => fromTodoWrite(e.todos))
-    return ran
-  }).catch(($, e, next) => next(e))
-
-  on('tool.call', { tool: 'TaskCreate' }, async ($, e, next) => {
-    const ran = await next(e)
-    if (ran.deny === undefined && ran.isError !== true) {
-      const id = ran.result.task.id
-      await onTodos($, list => addTask(list, id, e.subject, e.activeForm))
-    }
-    return ran
-  }).catch(($, e, next) => next(e))
-
-  on('tool.call', { tool: 'TaskUpdate' }, async ($, e, next) => {
-    const ran = await next(e)
-    if (ran.deny === undefined && ran.isError !== true && ran.result.success) {
-      await onTodos($, list => updateTask(list, e))
-    }
-    return ran
-  }).catch(($, e, next) => next(e))
-
   // 只是讀版面資訊，畫面交給下層照常畫；主畫面版面會擠掉輸入框上方的空間，不自動開
   on('ui.render', { component: 'AbovePrompt' }, ($, e, next) => {
     if (e.viewport?.isFullscreen === true && !isOpenScheduled) {
@@ -176,7 +140,7 @@ export const register: Register = on => {
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
     const { Box, Text, Button, Code } = $.ui.resolve(e)
     const columns = Math.max(20, e.props.bodyColumns)
-    const [fileList, todoList, current, root] = await Promise.all([read($, files), read($, todos), read($, view), read($, cwd)])
+    const [fileList, current, root] = await Promise.all([read($, files), read($, view), read($, cwd)])
     const opened = current.kind === 'diff' ? fileList.find(file => file.key === current.key) : undefined
 
     if (current.kind === 'diff' && opened !== undefined) {
@@ -245,25 +209,11 @@ export const register: Register = on => {
       )
     }
 
-    // 清單：上半 TO DO，下半改過的檔案
-    const { done, total: count } = progress(todoList)
-    const filled = count === 0 ? 0 : Math.round((done / count) * PROGRESS_CELLS)
-    const { shown: todoRows, foldedDone } = visibleTodos(todoList)
+    // 清單：改過的檔案
     const recent = byRecent(fileList)
 
     return (
       <Box flexDirection="column">
-        <Text>
-          <Text bold>TO DO </Text>
-          {count > 0 && <Text color={GREEN}>{'▰'.repeat(filled)}</Text>}
-          {count > 0 && <Text color={TRACK}>{'▱'.repeat(PROGRESS_CELLS - filled)}</Text>}
-          {count > 0 && <Text dimColor> {done}/{count}</Text>}
-        </Text>
-        {count === 0 && <Text dimColor>尚無 TO DO</Text>}
-        {foldedDone > 0 && <Text color={GREEN} dimColor>✓ 已完成 {foldedDone} 項</Text>}
-        {todoRows.map(todo => todoRow(Text, todo, columns))}
-
-        <Text color={TRACK}>{'─'.repeat(columns)}</Text>
         <Text bold>已改檔案 ({recent.length})</Text>
         {recent.length === 0 && <Text dimColor>尚未用 Edit／Write 改過檔案</Text>}
         {recent.map(file => {
@@ -282,17 +232,4 @@ export const register: Register = on => {
       </Box>
     )
   })
-}
-
-type TextElement = ReturnType<EngineInterface['ui']['resolve']>['Text']
-
-function todoRow(Text: TextElement, todo: SessionChangesTodo, columns: number) {
-  const width = Math.max(8, columns - 2)
-  if (todo.status === 'completed') {
-    return <Text key={`todo:${todo.id}`} dimColor wrap="truncate-end"><Text color={GREEN}>✓</Text> {fitStart(todo.content, width)}</Text>
-  }
-  if (todo.status === 'in_progress') {
-    return <Text key={`todo:${todo.id}`} bold color={ACCENT} wrap="truncate-end">◐ {todo.activeForm}</Text>
-  }
-  return <Text key={`todo:${todo.id}`} wrap="truncate-end">○ {todo.content}</Text>
 }

@@ -33,7 +33,7 @@ test('draws the framed meter above the prompt at every width', async ($, on) => 
   on('turn.step', async function* ($, e): AsyncGenerator<never, TurnStepResult> {
     return { turnId: e.turnId, index: e.index, answer: 'ok', toolUses: [], stopReason: 'end_turn', usage: turnUsage }
   })
-  // 下層另一個 mod（例如 next-steps）畫的內容要保留
+  // 下層另一個 mod畫的內容要保留
   on('ui.render', { component: 'AbovePrompt' }, ($, e) => {
     const { Text } = $.ui.resolve(e)
     return <Text key="beneath">next:</Text>

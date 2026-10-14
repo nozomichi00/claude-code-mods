@@ -22,15 +22,6 @@ export type SessionChangesFile = {
   lastAt: number
 }
 
-export type SessionChangesTodoStatus = 'pending' | 'in_progress' | 'completed'
-
-export type SessionChangesTodo = {
-  id: string
-  content: string
-  activeForm: string
-  status: SessionChangesTodoStatus
-}
-
 export type SessionChangesDiffMode = 'each' | 'total'
 
 export type SessionChangesView =
@@ -50,7 +41,6 @@ declare module 'claude-code' {
   interface PluginState {
     'session-changes': {
       files: SessionChangesFile[]
-      todos: SessionChangesTodo[]
       view: SessionChangesView
       total: SessionChangesTotal | null
       cwd: string

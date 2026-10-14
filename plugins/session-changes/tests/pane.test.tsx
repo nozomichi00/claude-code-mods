@@ -29,7 +29,6 @@ function engine(on: On, state: { isFailing: boolean; disk: string }) {
         structuredPatch: [{ oldStart: 2, oldLines: 1, newStart: 2, newLines: 1, lines: ['-const b = 2', '+const b = 3'] }],
       },
     }))
-  on('tool.call', { tool: 'TodoWrite' }, ($, e) => ({ result: { oldTodos: [], newTodos: e.todos } }))
 }
 
 async function start($: Parameters<TestBody>[0], on: On) {
@@ -42,23 +41,14 @@ async function start($: Parameters<TestBody>[0], on: On) {
 
 const editCall = { tool: 'Edit', file_path: FILE, old_string: 'const b = 2', new_string: 'const b = 3' } as const
 
-test('lists successful edits and the todo progress in the pane', async ($, on) => {
+test('lists only successful edits in the pane', async ($, on) => {
   const state = await start($, on)
   await $.tool.call(editCall)
   state.isFailing = true
   await $.tool.call({ ...editCall, file_path: 'C:\\work\\demo\\failed.ts' })
-  await $.tool.call({
-    tool: 'TodoWrite',
-    todos: [
-      { content: '讀設定', status: 'completed', activeForm: '正在讀設定' },
-      { content: '寫面板', status: 'in_progress', activeForm: '正在寫面板' },
-    ],
-  })
 
   for (const surface of ['terminal', 'desktop'] as const) {
     const ui = await $.ui.mount({ plugin: 'session-changes', surface, ...pane })
-    expect(await ui.find({ type: 'Text', text: /1\/2/ })).toBeDefined()
-    expect(await ui.find({ type: 'Text', text: /正在寫面板/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /已改檔案 \(1\)/ })).toBeDefined()
     expect(await ui.find({ key: 'file:c:/work/demo/src/app.ts' })).toBeDefined()
     expect(await ui.find({ key: 'file:c:/work/demo/failed.ts' })).toBeUndefined()
@@ -118,13 +108,12 @@ test('opens the pane once at the start under the fullscreen layout, never on the
   expect(opens).toEqual(['session-changes'])
 })
 
-test('clears files and todos on /clear', async ($, on) => {
+test('clears files on /clear', async ($, on) => {
   await start($, on)
   await $.tool.call(editCall)
   await $.session.end({ reason: 'clear', sessionId: 's1', resume: { id: 's1' } })
 
   const ui = await $.ui.mount({ plugin: 'session-changes', surface: 'terminal', ...pane })
   expect(await ui.find({ type: 'Text', text: /已改檔案 \(0\)/ })).toBeDefined()
-  expect(await ui.find({ type: 'Text', text: /尚無 TO DO/ })).toBeDefined()
   await ui.unmount()
 })

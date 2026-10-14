@@ -11,14 +11,9 @@
       "description": "輸入框上方的圓角框用量列：context、五小時額度與重置時間、本週額度、累計 token、快取倒數，Context 右邊常駐交接按鈕"
     },
     {
-      "name": "next-steps",
-      "source": "./plugins/next-steps",
-      "description": "每輪結束後在輸入框上方建議最多三個下一步 prompt，按 1/2/3 填入、0 關閉。複製自 anthropics/claude-plugins-community（作者 Thariq Shihipar，MIT）"
-    },
-    {
       "name": "session-changes",
       "source": "./plugins/session-changes",
-      "description": "側邊面板：即時列出本 session 用 Edit／Write 改過的檔案（點開看逐次或累計 diff）與 TO DO 進度"
+      "description": "側邊面板：即時列出本 session 用 Edit／Write 改過的檔案，點開看逐次或累計 diff"
     }
   ]
 }

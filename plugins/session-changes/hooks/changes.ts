@@ -1,9 +1,7 @@
-// 純資料處理：記錄 Edit／Write、拼 TO DO 清單、路徑與寬度計算。
+// 純資料處理：記錄 Edit／Write、路徑與寬度計算。
 
 import { cleanLine, oneLine, splitLines } from './diff'
-import type {
-  SessionChangesEdit, SessionChangesFile, SessionChangesTodo, SessionChangesTodoStatus,
-} from '../types'
+import type { SessionChangesEdit, SessionChangesFile } from '../types'
 
 export type PatchHunk = {
   oldStart: number
@@ -137,51 +135,6 @@ export function clipDiff(diff: string, budget = DIFF_BUDGET): ClippedDiff {
   // 單一片段就超過：片段標頭的行數不再相符、無法當 diff 解析，改成純文字顯示
   const lineEnd = diff.lastIndexOf('\n', budget)
   return { text: diff.slice(0, lineEnd > 0 ? lineEnd : budget), isClipped: true, isPlain: true }
-}
-
-// ── TO DO ──────────────────────────────────────────────────────────
-
-type TodoInput = { content: string; status: SessionChangesTodoStatus; activeForm: string }
-
-/** TodoWrite 每次送整份清單，直接取代。 */
-export function fromTodoWrite(todos: readonly TodoInput[]): SessionChangesTodo[] {
-  return todos.map((todo, i) => ({ id: `todo-${i}`, content: oneLine(todo.content), activeForm: oneLine(todo.activeForm), status: todo.status }))
-}
-
-export function addTask(todos: readonly SessionChangesTodo[], id: string, subject: string, activeForm: string | undefined): SessionChangesTodo[] {
-  const task: SessionChangesTodo = { id, content: oneLine(subject), activeForm: oneLine(activeForm ?? subject), status: 'pending' }
-  return [...todos.filter(todo => todo.id !== id), task]
-}
-
-export type TaskPatch = {
-  taskId: string
-  subject?: string
-  activeForm?: string
-  status?: SessionChangesTodoStatus | 'deleted'
-}
-
-export function updateTask(todos: readonly SessionChangesTodo[], patch: TaskPatch): SessionChangesTodo[] {
-  if (patch.status === 'deleted') return todos.filter(todo => todo.id !== patch.taskId)
-  const status = patch.status
-  return todos.map(todo => (todo.id !== patch.taskId ? todo : {
-    ...todo,
-    ...(patch.subject === undefined ? {} : { content: oneLine(patch.subject) }),
-    ...(patch.activeForm === undefined ? {} : { activeForm: oneLine(patch.activeForm) }),
-    ...(status === undefined ? {} : { status }),
-  }))
-}
-
-export function progress(todos: readonly SessionChangesTodo[]): { done: number; total: number } {
-  return { done: todos.filter(todo => todo.status === 'completed').length, total: todos.length }
-}
-
-const TODO_LIMIT = 8
-
-/** 超過上限時，已完成的收成一行。 */
-export function visibleTodos(todos: readonly SessionChangesTodo[]): { shown: SessionChangesTodo[]; foldedDone: number } {
-  if (todos.length <= TODO_LIMIT) return { shown: [...todos], foldedDone: 0 }
-  const open = todos.filter(todo => todo.status !== 'completed')
-  return { shown: open, foldedDone: todos.length - open.length }
 }
 
 // ── 寬度 ──────────────────────────────────────────────────────────

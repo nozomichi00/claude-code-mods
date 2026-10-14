@@ -160,7 +160,7 @@ export const register: Register = (on, options) => {
     return result
   })
 
-  // 同一個 band 可能還有其他 mod（例如 next-steps）：先取下層畫的內容，再接上用量列
+  // 同一個 band 可能還有其他 mod：先取下層畫的內容，再接上用量列
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const below = await next(e)
     if (e.props.hasSurvey) return below
