@@ -14,6 +14,11 @@
       "name": "next-steps",
       "source": "./plugins/next-steps",
       "description": "每輪結束後在輸入框上方建議最多三個下一步 prompt，按 1/2/3 填入、0 關閉。複製自 anthropics/claude-plugins-community（作者 Thariq Shihipar，MIT）"
+    },
+    {
+      "name": "session-changes",
+      "source": "./plugins/session-changes",
+      "description": "側邊面板：即時列出本 session 用 Edit／Write 改過的檔案（點開看逐次或累計 diff）與 TO DO 進度"
     }
   ]
 }
